@@ -2,6 +2,15 @@
 #include <sstream>
 #include <iterator>
 
+template<class T>
+inline File::data<T>& File::find( std::vector<data<T>>& tab, std::string name ) {
+	for( unsigned int i = 0; i < tab.size(); i++ ) {
+		if( tab.at( i ).name == name ) {
+			return tab.at( i );
+		}
+	}
+	return File::data<T>();
+}
 
 std::string File::translate( std::string input ) {
 	std::istringstream buf( input );
@@ -10,19 +19,156 @@ std::string File::translate( std::string input ) {
 	std::vector<std::string> words(beg,end);
 	std::string toreturn;
 
-	for( unsigned int i = 0; i < words.size(); i++){
+	
+	bool USING_MACRO = false;
+	bool MATH_EXPR = false;
+	bool NEW_VAR = false;
+	bool PRINT = false;
+	bool USING_MACRO_START_END = false;
+	bool SYNTAX_ERROR = false;
+	bool ABORT = false;
+	{
 		std::string spliter;
-		if( words.at( i ).size() >= 5 ) {
-			spliter = std::string( words.at( i ).at( 0 ), words.at( i ).at( 4 ) );
+		//-----------sprawdzam makra-----------//
+		if( words.at( 0 ).at( 0 ) == '/' ) {
+			if( words.at( 0 ) == "/START" ) {
+				USING_MACRO_START_END = true;
+				START_PROGRAMU = true;
+			}
+			if( START_PROGRAMU ) {
+				if( words.at( 0 ) == "/USING" ) {
+					USING_MACRO = true;
+				}
+				else if( words.at( 0 ) == "/END" ) {
+					START_PROGRAMU = false;
+					USING_MACRO_START_END = true;
+				}
+			}
+		}
+		//----------sprawdzam inne komendy----------//
+		else if( words.at( 0 ).size() >= 3 ) {
+			if( START_PROGRAMU ) {
+				spliter = std::string( words.at( 0 ).at( 0 ), words.at( 0 ).at( 2 ) );
+				if( spliter == "var" ) {
+					NEW_VAR = true;
+				}
+				if( words.at( 0 ).size() >= 5 ) {
+					spliter = std::string( words.at( 0 ).at( 0 ), words.at( 0 ).at( 4 ) );
+					if( spliter == "print" ) {
+						toreturn += "std::cout <<";
+						PRINT = true;
+					}
+				}
+			}
+		}
+		else {
+			MATH_EXPR = true;
+		}
+	}
+	if( START_PROGRAMU ) {
+		if( USING_MACRO ) {
+			if( words.at( 2 ) == "\"IOSTREAM\"" ) {
+				toreturn += "#include <iostream>\n";
+			}
+		}
+		else if( NEW_VAR ) {
+			if( words.at( 2 ) == ":" ) {
+				if( words.at( 3 ) == "int" ) {
+					if( find( intTab, words.at( 1 ) ).name.empty() ) {
+						intTab.push_back( data<int>{} );
+						intTab.at( intTab.size() - 1 ).name = words.at( 1 );
+					}
+					else {
+						std::cout << "Name already occupated" << std::endl;
+					}
+				}
+				else if( words.at( 3 ) == "float" ) {
+					floatTab.push_back( data<float>{} );
+					intTab.at( intTab.size() - 1 ).name = words.at( 1 );
+				}
+				else if( words.at( 3 ) == "string" ) {
+					stringTab.push_back( data<std::string>{} );
+					intTab.at( intTab.size() - 1 ).name = words.at( 1 );
+				}
+				else {
+					std::cout << "Syntax error: there is no such type as"<< words.at( 3 ) << std::endl;
+				}
+			}
+			else {
+				std::cout << "Syntax error: wrong var declaration" << std::endl;
+				ABORT = true;
+			}
+		}
+		//---------math----------//
+		if( MATH_EXPR ) {
+			if( !find( intTab, words.at( 0 ) ).name.empty() ) {
+				if( words.at( 1 ) == "=" ) {
+					for( unsigned int i = 2; i < words.size(); i++ ) {
+						//if( i > 2 ) {
+							//if( words.at( 2 ) == "-" || words.at( 2 ) == "+" ) {
 
-			if( spliter == "print" ) {
-				toreturn += "std::cout";
+							//}
+							//else {
+							if( i % 2 == 0 ) {
+								if( isdigit( words.at( i ).c_str ) ) {
+									find( intTab, words.at( 0 ) ).value += std::stoi( words.at( i ) );
+								}
+								else if( !find( intTab, words.at( i ) ).name.empty() ) {
+									find( intTab, words.at( 0 ) ).value += find( intTab, words.at( i ) ).value;
+								}
+								else {
+									std::cout << "var not declarated yet" << std::endl;
+									ABORT = true;
+								}
+							}
+							//}
+						//}
+					}
+				}
+			}
+			else {
+				std::cout << "var not declarated yet" << std::endl;
+				ABORT = true;
+			}
+			if( !ABORT ) {
+				toreturn = "#math";
+			}
+		}
+		else if( PRINT ) {
+			std::string split = std::string( words.at( 0 ).at( 6 ), words.at( 0 ).at( words.size() - 3 ) );
+			if( split.at( 0 ) == '"' && split.at( split.size() - 1 ) == '"' ) {
+				toreturn += std::string( split.at( 1 ), split.at( split.size() - 2 ) );
+			}
+			else {
+				if( find( intTab, split ).name.empty() ) {
+					std::cout << "var undefined" << std::endl;
+					ABORT = true;
+				}
+				else {
+					toreturn += find( intTab, split ).value;
+				}
 			}
 		}
 	}
 
-	return std::string();
+	if( !ABORT ) {
+		toreturn += ";";
+		return toreturn;
+	}
+	else
+		return "error";
 }
+
+//for( unsigned int i = 1; i < words.size(); i++ ) {
+//	if( USING_MACRO ) {
+//		if( words.at( 2 ) == "\"IOSTREAM\"" ) {
+//			toreturn += "#include <iostream>\n";
+//		}
+//	}
+//	if( NEW_VAR ) {
+//
+//	}
+//}
 
 File::File( std::string input_path ) {
 	bool goodExt;
@@ -60,10 +206,24 @@ void File::compile() {
 	}
 
 	///----------proces interpretacji---------///
-
+	std::string pomoc;
 	for( unsigned int i = 0; i < instrTab.size(); i++ ) {
-
+		pomoc = translate( instrTab.at( i ) );
+		if( pomoc == "error" ) {
+			std::cout << "compilation aborded" << std::endl;
+			break;
+		}
+		else {
+			outputInstr.push_back( pomoc );
+		}
+		pomoc.clear();
 	}
+	///----------daj do nowego pliku---------///
+	for( unsigned int i = 0; i < outputInstr.size(); i++ ) {
+		outputFile << outputInstr.at( i );
+	}
+	outputFile.close();
+	std::cout << "compilation finished";
 }
 
 File::~File() {
