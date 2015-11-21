@@ -1,0 +1,4 @@
+// -> komentarz
+using "library"; ->dodanie innego pliku;
+
+var x : int; -> stworzenie zmiennej int;
