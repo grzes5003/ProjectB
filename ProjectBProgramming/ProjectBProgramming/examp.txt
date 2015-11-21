@@ -1,4 +1,0 @@
-/START
-/USING "IOSTREAM"
-print("Hello World")
-/END

@@ -1,6 +1,14 @@
 #include "file.h"
 #include <sstream>
 #include <iterator>
+#include <locale>
+
+bool is_number( const std::string& s ) {
+	std::locale loc;
+	std::string::const_iterator it = s.begin();
+	while( it != s.end() && std::isdigit( *it,loc ) ) ++it;
+	return !s.empty() && it == s.end();
+}
 
 template<class T>
 inline File::data<T>& File::find( std::vector<data<T>>& tab, std::string name ) {
@@ -110,7 +118,7 @@ std::string File::translate( std::string input ) {
 							//}
 							//else {
 							if( i % 2 == 0 ) {
-								if( isdigit( words.at( i ).c_str ) ) {
+								if( is_number( words.at( i )) ) {
 									find( intTab, words.at( 0 ) ).value += std::stoi( words.at( i ) );
 								}
 								else if( !find( intTab, words.at( i ) ).name.empty() ) {
@@ -174,7 +182,8 @@ File::File( std::string input_path ) {
 	bool goodExt;
 	{
 		//valid extencion = "gk"
-		std::string extencion = std::string( input_path.at( input_path.size() - 4 ), (input_path.size() - 1) );
+		std::string extencion = input_path.substr( input_path.size() - 3 , input_path.size() - 1 );
+		std::cout << extencion << std::endl;
 		if( extencion == ".gk" )
 			goodExt = true;
 		else
@@ -185,7 +194,7 @@ File::File( std::string input_path ) {
 		if( !inputFile.good() ) {
 			std::cout << "wrong file path" << std::endl;
 		}
-		std::string newPath = std::string(input_path.at(0), input_path.at(input_path.size()-5));
+		std::string newPath = input_path.substr(0, input_path.size()-3);
 		outputFile.open(newPath+".txt", std::ios::app);
 	}
 	else {
@@ -209,6 +218,7 @@ void File::compile() {
 	std::string pomoc;
 	for( unsigned int i = 0; i < instrTab.size(); i++ ) {
 		pomoc = translate( instrTab.at( i ) );
+		std::cout << pomoc << std::endl;
 		if( pomoc == "error" ) {
 			std::cout << "compilation aborded" << std::endl;
 			break;
