@@ -40,14 +40,16 @@ std::string File::translate( std::string input ) {
 		//-----------sprawdzam makra-----------//
 		if( words.at( 0 ).at( 0 ) == '/' ) {
 			if( words.at( 0 ) == "/START" ) {
+				toreturn += "int main(){";
 				USING_MACRO_START_END = true;
 				START_PROGRAMU = true;
 			}
+			if( words.at( 0 ) == "/USING" ) {
+				USING_MACRO = true;
+			}
 			if( START_PROGRAMU ) {
-				if( words.at( 0 ) == "/USING" ) {
-					USING_MACRO = true;
-				}
-				else if( words.at( 0 ) == "/END" ) {
+				if( words.at( 0 ) == "/END" ) {
+					toreturn += "return 0;}";
 					START_PROGRAMU = false;
 					USING_MACRO_START_END = true;
 				}
@@ -56,12 +58,13 @@ std::string File::translate( std::string input ) {
 		//----------sprawdzam inne komendy----------//
 		else if( words.at( 0 ).size() >= 3 ) {
 			if( START_PROGRAMU ) {
-				spliter = std::string( words.at( 0 ).at( 0 ), words.at( 0 ).at( 2 ) );
+				spliter = words.at(0).substr( 0 ,  2  );
 				if( spliter == "var" ) {
 					NEW_VAR = true;
 				}
 				if( words.at( 0 ).size() >= 5 ) {
-					spliter = std::string( words.at( 0 ).at( 0 ), words.at( 0 ).at( 4 ) );
+					spliter = words.at(0).substr(  0 , 5 );
+					//std::cout << "---------" << spliter << std::endl;
 					if( spliter == "print" ) {
 						toreturn += "std::cout <<";
 						PRINT = true;
@@ -73,13 +76,13 @@ std::string File::translate( std::string input ) {
 			MATH_EXPR = true;
 		}
 	}
-	if( START_PROGRAMU ) {
-		if( USING_MACRO ) {
-			if( words.at( 2 ) == "\"IOSTREAM\"" ) {
-				toreturn += "#include <iostream>\n";
-			}
+	if( USING_MACRO ) {
+		if( words.at( 1 ) == "\"IOSTREAM\"" ) {
+			toreturn += "#include <iostream>\n";
 		}
-		else if( NEW_VAR ) {
+	}
+	if( START_PROGRAMU ) {
+		if( NEW_VAR ) {
 			if( words.at( 2 ) == ":" ) {
 				if( words.at( 3 ) == "int" ) {
 					if( find( intTab, words.at( 1 ) ).name.empty() ) {
@@ -143,9 +146,9 @@ std::string File::translate( std::string input ) {
 			}
 		}
 		else if( PRINT ) {
-			std::string split = std::string( words.at( 0 ).at( 6 ), words.at( 0 ).at( words.size() - 3 ) );
+			std::string split = words.at(0).substr( 6 , words.size() - 3  );
 			if( split.at( 0 ) == '"' && split.at( split.size() - 1 ) == '"' ) {
-				toreturn += std::string( split.at( 1 ), split.at( split.size() - 2 ) );
+				toreturn += split.substr( 1 ,split.size() - 2 );
 			}
 			else {
 				if( find( intTab, split ).name.empty() ) {
@@ -208,8 +211,7 @@ void File::compile() {
 	std::stack<std::string> instrStack;
 
 	std::string temp;
-	while( inputFile.eof() ) {
-		std::getline( inputFile, temp );
+	while( std::getline( inputFile, temp ) ) {
 		instrTab.push_back( temp );
 		temp.clear();
 	}
@@ -218,6 +220,7 @@ void File::compile() {
 	std::string pomoc;
 	for( unsigned int i = 0; i < instrTab.size(); i++ ) {
 		pomoc = translate( instrTab.at( i ) );
+		std::cout << instrTab.at( i ) << "      ";
 		std::cout << pomoc << std::endl;
 		if( pomoc == "error" ) {
 			std::cout << "compilation aborded" << std::endl;
@@ -232,6 +235,7 @@ void File::compile() {
 	for( unsigned int i = 0; i < outputInstr.size(); i++ ) {
 		outputFile << outputInstr.at( i );
 	}
+	//outputFile << "lol";
 	outputFile.close();
 	std::cout << "compilation finished";
 }
